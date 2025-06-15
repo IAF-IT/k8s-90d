@@ -9,4 +9,4 @@ spec:
   - name: nginx
     image: nginx:latest
     ports:
-    - containerPort: 80 # порт на сетевом интерфейсе контейнера. 
+    - containerPort: 80 # порт на сетевом интерфейсе контейнера. | Если указать 8080 то и в service надо поменять на targetPort на 8080
