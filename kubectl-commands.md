@@ -1,5 +1,32 @@
-kubectl apply -f nginx-pod.yaml  
+# Kubernetes Quick Commands
+
+## Deploy
+```bash
+# Create Nginx pod
+kubectl apply -f nginx-pod.yaml
+
+# Expose as Service
 kubectl apply -f nginx-service.yaml
-kubectl port-forward svc/nginx-service 8080:80 # пробрасывает порт 8080 на вашей локальной машине к порту 80 Service'а в кластере. 
-                                               # http://localhost:8080 создает зашифрованное соединение через API Kubernetes (не требует открытия портов на узлах кластера).
-                                               # Перенаправляет трафик: Запросы к localhost:8080 на вашей машине отправляются в кластер и достигают Pod'ов через Service.
+```
+## Access
+```bash
+# Forward port 8080 → Service 80
+kubectl port-forward svc/nginx-service 8080:80
+```
+Access at: http://localhost:8080  
+Ctrl+C to stop
+
+## Verify
+```bash
+kubectl get pods
+kubectl get svc
+```
+## Tips
+```bash
+# Apply both at once
+kubectl apply -f nginx-pod.yaml -f nginx-service.yaml
+
+# Background forwarding
+kubectl port-forward svc/nginx-service 8080:80 &
+```
+💡 Service type defaults to ClusterIP (internal access). Use NodePort for external access
