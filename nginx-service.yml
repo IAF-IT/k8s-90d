@@ -4,9 +4,9 @@ metadata:
   name: nginx-service
 spec:
   selector:
-    app: nginx
+    app: nginx # Указыыает на метку\labels app: nginx
   ports:
-    - protocol: TCP
+    - protocol: TCP # По умелчанию, можно не указывать
       port: 80
-      targetPort: 80
-  type: NodePort # делаем доступным снаружи кластера
+      targetPort: 80 # Должен совпадать с containerPort
+  type: NodePort # делаем доступным снаружи кластера | временное решения для примера, в релальности используется loadBalanser или ingress
