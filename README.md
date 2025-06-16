@@ -65,6 +65,7 @@ kubectl exec mysql-0 -- mysql -u root -p$(kubectl get secret mysql-secret -o jso
 ``` 
 
 # Automated Deployment  
+kubectl delete namespace mysql-ns  # Удалит ВСЕ ресурсы в namespace
 
 ### Requirements  
 - Ansible 2.14+  
@@ -75,3 +76,8 @@ kubectl exec mysql-0 -- mysql -u root -p$(kubectl get secret mysql-secret -o jso
 cd automation  
 ansible-playbook deploy_mysql_stack.yml
 ```
+```
+TASK [Show connection string] ***********************************************************************************************************************************************************************************
+ok: [localhost] => {
+    "msg": "mysql -h mysql-0.mysql.mysql-ns.svc.cluster.local -u"
+}
