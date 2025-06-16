@@ -81,3 +81,5 @@ TASK [Show connection string] **************************************************
 ok: [localhost] => {
     "msg": "mysql -h mysql-0.mysql.mysql-ns.svc.cluster.local -u"
 }
+```
+playbook deployed to 1,5 min. 
