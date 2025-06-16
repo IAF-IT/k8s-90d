@@ -83,3 +83,11 @@ ok: [localhost] => {
 }
 ```
 playbook deployed to 1,5 min. 
+
+✅ Success Criteria:
+
+MySQL pod becomes Ready within 3 minutes
+
+You can connect using generated credentials
+
+Data persists after pod restart
