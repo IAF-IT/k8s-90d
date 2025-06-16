@@ -1,0 +1,44 @@
+---
+- name: Deploy MySQL from repo root files
+  hosts: localhost
+  gather_facts: yes
+
+  vars:
+    namespace: default
+    repo_root: "{{ playbook_dir }}/.."
+
+  tasks:
+    - name: Apply all Kubernetes manifests from repo root
+      ansible.builtin.shell: |
+        kubectl apply -n {{ namespace }} -f {{ repo_root }}
+      register: apply_result
+
+    - name: Show kubectl apply output
+      debug:
+        var: apply_result.stdout_lines
+
+    - name: Wait for MySQL pod to appear (retry up to 2 minutes)
+      ansible.builtin.shell: |
+        kubectl get pods -n {{ namespace }} -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+      register: mysql_pod
+      retries: 12
+      delay: 10
+      until: mysql_pod.stdout != ""
+      changed_when: false
+
+    - name: Wait extra 20s for MySQL to fully initialize
+      ansible.builtin.pause:
+        seconds: 20
+
+    - name: Generate MySQL connection string
+      ansible.builtin.shell: |
+        USER=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.username}' | base64 -d)
+        PASS=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.password}' | base64 -d)
+        echo "mysql -h mysql-0.mysql -u $USER -p$PASS"
+      register: conn_string
+      changed_when: false
+
+    - name: Show MySQL connection string
+      debug:
+        msg: "{{ conn_string.stdout }}"
+
