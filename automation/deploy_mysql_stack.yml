@@ -1,37 +1,86 @@
 ---
-- name: Deploy MySQL from repo root files
+- name: Deploy MySQL stack with validation
   hosts: localhost
   gather_facts: yes
 
   vars:
     namespace: default
     repo_root: "{{ playbook_dir }}/.."
+    mysql_root_password: "{{ lookup('pipe', 'kubectl get secret mysql-secret -n ' + namespace + ' -o jsonpath={.data.password} | base64 -d') }}"
 
   tasks:
-    - name: Apply all Kubernetes manifests from repo root
+    - name: Apply Kubernetes manifests using optimized apply
       ansible.builtin.shell: |
-        kubectl apply -n {{ namespace }} -f {{ repo_root }}
+        for f in $(ls {{ repo_root }}/*.yaml); do
+          kubectl create --dry-run=client -o yaml -f $f | kubectl apply -n {{ namespace }} -f -
+        done
       register: apply_result
 
     - name: Show kubectl apply output
       debug:
         var: apply_result.stdout_lines
 
-    - name: Wait for MySQL pod to appear (retry up to 2 minutes)
-      ansible.builtin.shell: |
-        kubectl get pods -n {{ namespace }} -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+    - name: Wait for MySQL pod to be created
+      shell: |
+        kubectl get pod -n {{ namespace }} -l app=mysql -o jsonpath='{.items[0].metadata.name}'
       register: mysql_pod
       retries: 12
-      delay: 10
+      delay: 5
       until: mysql_pod.stdout != ""
       changed_when: false
 
-    - name: Wait extra 20s for MySQL to fully initialize
-      ansible.builtin.pause:
-        seconds: 20
+    - name: Wait extra 15s for MySQL to initialize
+      pause:
+        seconds: 15
+
+    - name: Verify MySQL connectivity
+      shell: |
+        kubectl exec -n {{ namespace }} {{ mysql_pod.stdout }} -- \
+          mysql -uroot -p{{ mysql_root_password }} -e "SHOW DATABASES;"
+      register: mysql_test
+      retries: 10
+      delay: 5
+      until: mysql_test.rc == 0
+      changed_when: false
+
+    - name: Fail if MySQL not responding
+      fail:
+        msg: "MySQL не ответил за 50 секунд!"
+      when: mysql_test is failed
+
+    - name: Create test database for persistence test
+      shell: |
+        kubectl exec -n {{ namespace }} {{ mysql_pod.stdout }} -- \
+          mysql -uroot -p{{ mysql_root_password }} -e "CREATE DATABASE IF NOT EXISTS test_persistence;"
+      register: create_db
+
+    - name: Delete MySQL pod to test persistence
+      shell: |
+        kubectl delete pod -n {{ namespace }} {{ mysql_pod.stdout }}
+      register: delete_result
+
+    - name: Wait for recreated pod
+      shell: |
+        kubectl get pod -n {{ namespace }} -l app=mysql -o jsonpath='{.items[0].metadata.name}'
+      register: new_mysql_pod
+      retries: 12
+      delay: 5
+      until: new_mysql_pod.stdout != ""
+      changed_when: false
+
+    - name: Pause to allow MySQL to start
+      pause:
+        seconds: 15
+
+    - name: Check persistence of test_persistence DB
+      shell: |
+        kubectl exec -n {{ namespace }} {{ new_mysql_pod.stdout }} -- \
+          mysql -uroot -p{{ mysql_root_password }} -e "SHOW DATABASES;" | grep test_persistence
+      register: persistence_check
+      failed_when: persistence_check.rc != 0
 
     - name: Generate MySQL connection string
-      ansible.builtin.shell: |
+      shell: |
         USER=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.username}' | base64 -d)
         PASS=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.password}' | base64 -d)
         echo "mysql -h mysql-0.mysql -u $USER -p$PASS"
