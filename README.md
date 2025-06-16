@@ -62,3 +62,16 @@ Restore the database:
 
 
 kubectl exec mysql-0 -- mysql -u root -p$(kubectl get secret mysql-secret -o jsonpath='{.data.password}' | base64 -d) app_db < /tmp/backup.sql
+``` 
+
+# Automated Deployment  
+
+### Requirements  
+- Ansible 2.14+  
+- kubectl configured with cluster access  
+
+### Usage  
+```bash  
+cd automation  
+ansible-playbook deploy_mysql_stack.yml
+```
