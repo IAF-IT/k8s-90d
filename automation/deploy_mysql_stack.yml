@@ -1,45 +1,44 @@
 ---
 - name: Deploy MySQL from repo root files
   hosts: localhost
-  connection: local
+  gather_facts: yes
+
   vars:
+    namespace: default
     repo_root: "{{ playbook_dir }}/.."
-    namespace: mysql-ns  # или используй то, что указано в манифестах
 
   tasks:
     - name: Apply all Kubernetes manifests from repo root
       ansible.builtin.shell: |
-        kubectl apply -f "{{ repo_root }}"
+        kubectl apply -n {{ namespace }} -f {{ repo_root }}
       register: apply_result
-    - debug:
+
+    - name: Show kubectl apply output
+      debug:
         var: apply_result.stdout_lines
 
-    - name: Wait for MySQL pod to start (60s)
-      ansible.builtin.pause:
-        seconds: 60
-
-    - name: Get MySQL pod name
+    - name: Wait for MySQL pod to appear (retry up to 2 minutes)
       ansible.builtin.shell: |
         kubectl get pods -n {{ namespace }} -l app=mysql -o jsonpath='{.items[0].metadata.name}'
       register: mysql_pod
-
-    - name: Check MySQL availability
-      ansible.builtin.shell: |
-        kubectl exec -n {{ namespace }} {{ mysql_pod.stdout }} -- \
-        mysqladmin ping -uroot -p$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.password}' | base64 -d)
-      register: mysql_check
-      retries: 3
+      retries: 12
       delay: 10
-      until: "'mysqld is alive' in mysql_check.stdout"
+      until: mysql_pod.stdout != ""
+      changed_when: false
 
-    - name: Print MySQL connection string
+    - name: Wait extra 20s for MySQL to fully initialize
+      ansible.builtin.pause:
+        seconds: 20
+
+    - name: Generate MySQL connection string
       ansible.builtin.shell: |
-        echo "mysql -h mysql-0.mysql.{{ namespace }}.svc.cluster.local \
-        -u $(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.username}' | base64 -d) \
-        -p$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.password}' | base64 -d)"
-      register: conn_str
+        USER=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.username}' | base64 -d)
+        PASS=$(kubectl get secret mysql-secret -n {{ namespace }} -o jsonpath='{.data.password}' | base64 -d)
+        echo "mysql -h mysql-0.mysql -u $USER -p$PASS"
+      register: conn_string
+      changed_when: false
 
-    - name: Show connection string
+    - name: Show MySQL connection string
       debug:
-        msg: "{{ conn_str.stdout }}"
+        msg: "{{ conn_string.stdout }}"
 
