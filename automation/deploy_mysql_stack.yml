@@ -90,4 +90,9 @@
     - name: Show MySQL connection string
       debug:
         msg: "{{ conn_string.stdout }}"
-
+    - name: Test MySQL connection
+      command: >
+        kubectl exec -n {{ namespace }} mysql-0 --
+        mysql -u root -p{{ mysql_root_password }} -e "SHOW DATABASES;"
+      register: mysql_test
+      failed_when: "mysql_test.rc != 0"

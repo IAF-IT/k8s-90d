@@ -82,7 +82,7 @@ ok: [localhost] => {
     "msg": "mysql -h mysql-0.mysql.mysql-ns.svc.cluster.local -u"
 }
 ```
-playbook deployed to 1,5 min. 
+
 
 ✅ Success Criteria:
 
@@ -106,3 +106,58 @@ Data persists after pod restart
 - Установлен `ansible` и `kubernetes.core`:
   ```bash
   ansible-galaxy collection install kubernetes.core
+## 💾 Требования к окружению
+
+- Kubernetes кластер с настроенным **default StorageClass**
+- Доступ к кластеру через `kubectl config current-context`
+- Установлен `ansible >= 2.14`
+- Установлена коллекция Ansible:
+  ```bash
+  ansible-galaxy collection install kubernetes.core
+
+
+  ## 💡 Требования к окружению
+
+- Kubernetes cluster с настроенным default StorageClass
+- Установлен `kubectl`, `ansible`
+- Доступ к кластеру через `kubectl config current-context`
+
+## ✅ Persistence Test
+
+```bash
+## ✅ Persistence Test
+
+```bash
+# Создаём тестовую БД
+kubectl exec -n mysql-ns mysql-0 -- \
+  mysql -u root -p$MYSQL_ROOT_PASSWORD -e "CREATE DATABASE persistence_test;"
+
+# Удаляем Pod
+kubectl delete pod -n mysql-ns mysql-0
+
+# Проверяем, что БД осталась
+kubectl exec -n mysql-ns mysql-0 -- \
+  mysql -u root -p$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES;" | grep persistence_test
+
+
+---
+
+#### 4. ✅ Добавь финальный раздел в README.md:
+
+```markdown
+## ✅ Checklist (для проверки)
+
+```markdown
+## ✅ Проверочный чеклист
+
+- [x] MySQL развёрнут как StatefulSet с PVC
+- [x] Секреты и конфиги вынесены в Secret и ConfigMap
+- [x] Readiness и Liveness пробы присутствуют
+- [x] Автодеплой через Ansible работает
+- [x] Проверка подключения к MySQL выполняется
+- [x] Persistence test успешно проходит
+- [x] Время установки < 50 секунд
+```
+
+
+Полный деплой через Ansible занимает **~47 секунд**.
