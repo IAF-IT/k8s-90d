@@ -17,6 +17,29 @@
 - **Tools**:
   - Docker Desktop
   - Visual Studio Code
-  - GitHub Desktop
+  - GitHub Desktop  
 
----
+---   
+## Day 2:   
+### Task  
+Task: Deploy a StatefulSet for MySQL with PersistentVolume
+Requirements:
+
+Database password must be stored in a Secret.
+
+Configuration (username, database name) must be stored in a ConfigMap.
+
+Implement Liveness and Readiness probes.
+
+### Exampl to connect from another pod whith mysql-client
+Вот как можно запустить тестовый под:
+
+```bash
+
+kubectl run mysql-client --rm -it --image=mysql:5.7 -- bash
+После запуска внутри bash:
+
+mysql -h mysql-0.mysql -u myuser -p
+# Введи пароль: 
+```
+
