@@ -81,3 +81,28 @@ TASK [Show connection string] **************************************************
 ok: [localhost] => {
     "msg": "mysql -h mysql-0.mysql.mysql-ns.svc.cluster.local -u"
 }
+```
+playbook deployed to 1,5 min. 
+
+✅ Success Criteria:
+
+MySQL pod becomes Ready within 3 minutes
+
+You can connect using generated credentials
+
+Data persists after pod restart
+
+## ✅ Критерии успешной установки
+
+- [x] MySQL Pod успешно создаётся в `default` namespace
+- [x] Проверка подключения к MySQL выполняется через `mysqladmin`/`mysql`
+- [x] Данные в БД сохраняются после удаления Pod (тест персистентности)
+- [x] Плейбук завершает установку за ~50 секунд
+
+### 💾 Требования
+
+- Kubernetes кластер с настроенным `default` StorageClass
+- Доступный `kubectl` с контекстом, указывающим на нужный кластер
+- Установлен `ansible` и `kubernetes.core`:
+  ```bash
+  ansible-galaxy collection install kubernetes.core
