@@ -43,3 +43,22 @@ mysql -h mysql-0.mysql -u myuser -p
 # Введи пароль: 
 ```
 
+### Backup and Restore
+Backup MySQL Database
+Create a dump file from the running MySQL pod:
+
+```bash
+kubectl exec mysql-0 -- mysqldump -u root -p$(kubectl get secret mysql-secret -o jsonpath='{.data.password}' | base64 -d) app_db > backup.sql
+Copy the backup locally:
+
+
+kubectl cp mysql-0:backup.sql ./backup.sql
+Restore MySQL Database
+Copy the backup file to a new pod:
+
+
+kubectl cp ./backup.sql mysql-0:/tmp/backup.sql
+Restore the database:
+
+
+kubectl exec mysql-0 -- mysql -u root -p$(kubectl get secret mysql-secret -o jsonpath='{.data.password}' | base64 -d) app_db < /tmp/backup.sql
